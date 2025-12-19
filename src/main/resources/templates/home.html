@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Timesheet Home</title>
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"/>
+
+    <style>
+        body {
+            background: #eef2f6;
+        }
+
+        .main-wrapper {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 25px rgba(0,0,0,0.08);
+            max-width: 1100px;
+            margin: 40px auto;
+            border: 1px solid #e3e6ea;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 110px;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            font-size: 18px;
+            color: #666;
+        }
+
+        .card {
+            border-radius: 14px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
+        }
+
+        h2 {
+            font-weight: 600;
+        }
+
+        .card-body p {
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="main-wrapper">
+
+    <!-- Header with Logo & Claim -->
+    <div class="header-section">
+        <img src="/logo.png" alt="Company Logo" class="logo">
+        <h2 class="mt-2">TIMESHEET MANAGEMENT PORTAL</h2>
+        <p class="tagline">Empowering Smart Workforce Management</p>
+    </div>
+
+    <!-- Cards in a single row -->
+    <div class="row text-center gy-4">
+
+        <!-- Generate Timesheet -->
+        <div class="col-md-4">
+            <div class="card shadow-sm p-3">
+                <div class="card-body">
+                    <h4 class="mb-2">Generate Timesheet</h4>
+                    <p>Create monthly Excel timesheets for employees efficiently</p>
+                    <a href="/timesheet" class="btn btn-primary btn-lg px-4">
+                        Go to Timesheet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Employee -->
+        <div class="col-md-4">
+            <div class="card shadow-sm p-3">
+                <div class="card-body">
+                    <h4 class="mb-2">Add New Employee</h4>
+                    <p>Add and manage employee details with ease</p>
+                    <a href="/add-employee" class="btn btn-success btn-lg px-4">
+                        Add Employee
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate Attendance -->
+        <div class="col-md-4">
+            <div class="card shadow-sm p-3">
+                <div class="card-body">
+                    <h4 class="mb-2">Generate Attendance</h4>
+                    <p>Create monthly Excel attendance sheets for employees efficiently</p>
+                    <a href="/attendance" class="btn btn-primary btn-lg px-4">
+                        Go to Attendance
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

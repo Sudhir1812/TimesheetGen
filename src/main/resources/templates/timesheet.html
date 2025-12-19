@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Timesheet Generator</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+        pre {
+            background: #1e1e1e;
+            color: #b5f5ec;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body class="p-4">
+
+<div class="container">
+    <form id="timesheetForm" novalidate>
+
+        <h2 class="mb-4 text-center">📝 Timesheet Generator</h2>
+
+        <div class="row g-4">
+
+            <!-- BASIC DETAILS -->
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">Employee Details</div>
+                    <div class="card-body">
+                        <input id="employeeId" class="form-control mb-2" placeholder="Employee ID" required>
+                        <div class="row">
+                            <div class="col">
+                                <input id="year" type="number" class="form-control" value="2025" placeholder="Year"
+                                       required>
+                            </div>
+                            <div class="col">
+                                <input id="month" type="number" class="form-control" value="12" placeholder="Month"
+                                       required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- WEEKOFF -->
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-secondary text-white">Saturday WeekOff Rule</div>
+                    <div class="card-body">
+                        <!-- id changed to 'weekoff' for consistent JS usage -->
+                        <select id="weekoff" class="form-select" required>
+                            <option value="">-- Select Weekoff Rule --</option>
+                            <option value="1">1st & 3rd Saturday Off</option>
+                            <option value="2">2nd & 4th Saturday Off</option>
+                            <option value="3">All Saturdays Off</option>
+                            <option value="4">All Saturdays Working</option>
+                        </select>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- HOLIDAY + REMARK -->
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-warning">Holidays & Remarks</div>
+                    <div class="card-body">
+
+                        <div class="input-group mb-3">
+                            <input type="date" id="holidayInput" class="form-control">
+                            <input type="text" id="remarkInput" class="form-control" placeholder="Remark">
+                            <button class="btn btn-success" type="button" onclick="addHoliday()">Add</button>
+                        </div>
+
+                        <ul class="list-group" id="holidayRemarkPairs"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEAVES -->
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-info">Leave Dates</div>
+                    <div class="card-body">
+
+                        <div class="input-group mb-3">
+                            <input type="date" id="leaveInput" class="form-control">
+                            <button class="btn btn-success" type="button" onclick="addLeave()">Add</button>
+                        </div>
+
+                        <ul class="list-group" id="leaveList"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⭐ MANAGER APPROVAL (JUST A STRING) -->
+            <div class="col-md-12">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">Manager Approval</div>
+                    <div class="card-body">
+
+                        <input id="managerApproval" class="form-control mb-2"
+                               placeholder="Manager Name (e.g., Rathin Sarkar)" required>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- JSON PREVIEW -->
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-dark text-white">JSON Preview</div>
+                    <div class="card-body">
+                        <pre id="jsonOutput"></pre>
+                    </div>
+                </div>
+            </div>
+
+
+
+                <button type="button" class="btn btn-success" onclick="sendRequest()">Generate Excel</button>
+                <a href="/" class="btn btn-outline-secondary">Back to Home</a>
+
+
+
+        </div>
+
+    </form>
+</div>
+
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toastBox" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toastTitle">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody">Message goes here</div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Use explicit references instead of relying on implicit globals
+    const form = document.getElementById('timesheetForm');
+    const employeeIdEl = document.getElementById('employeeId');
+    const yearEl = document.getElementById('year');
+    const monthEl = document.getElementById('month');
+    const weekoffEl = document.getElementById('weekoff');
+    const holidayInputEl = document.getElementById('holidayInput');
+    const remarkInputEl = document.getElementById('remarkInput');
+    const holidayRemarkPairsEl = document.getElementById('holidayRemarkPairs');
+    const leaveInputEl = document.getElementById('leaveInput');
+    const leaveListEl = document.getElementById('leaveList');
+    const managerApprovalEl = document.getElementById('managerApproval');
+    const jsonOutputEl = document.getElementById('jsonOutput');
+    const toastBoxEl = document.getElementById('toastBox');
+    const toastTitleEl = document.getElementById('toastTitle');
+    const toastBodyEl = document.getElementById('toastBody');
+
+    let holidays = [];
+    let remarks = [];
+    let leaves = [];
+
+    function showToast(title, message) {
+        toastTitleEl.innerText = title;
+        toastBodyEl.innerText = message;
+        new bootstrap.Toast(toastBoxEl).show();
+    }
+
+    function refreshJsonPreview() {
+        const obj = {
+            employeeId: employeeIdEl.value,
+            year: Number(yearEl.value) || null,
+            month: Number(monthEl.value) || null,
+            managerApproval: managerApprovalEl.value,
+            holidays: holidays,
+            leaveDates: leaves,
+            remarks: remarks,
+            saturdayWeekoff: weekoffEl.value ? Number(weekoffEl.value) : null
+        };
+        jsonOutputEl.innerText = JSON.stringify(obj, null, 4);
+    }
+
+    // Live preview: update preview when core inputs change
+    [employeeIdEl, yearEl, monthEl, weekoffEl, managerApprovalEl].forEach(el =>
+        el.addEventListener('input', refreshJsonPreview)
+    );
+
+    function addHoliday() {
+        const h = holidayInputEl.value;
+        const r = remarkInputEl.value;
+
+        if (!h) return showToast("Error", "Select holiday date");
+        if (!r.trim()) return showToast("Error", "Enter remark");
+
+        holidays.push(h);
+        remarks.push(r);
+
+        holidayInputEl.value = "";
+        remarkInputEl.value = "";
+
+        renderHolidayPairs();
+    }
+
+    function renderHolidayPairs() {
+        holidayRemarkPairsEl.innerHTML = "";
+        holidays.forEach((h, i) => {
+            const li = document.createElement('li');
+            li.className = "list-group-item d-flex justify-content-between align-items-center";
+            li.innerHTML = `<span>${h} — ${escapeHtml(remarks[i])}</span>`;
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-sm btn-danger';
+            btn.type = 'button';
+            btn.innerText = 'Delete';
+            btn.addEventListener('click', () => deleteHoliday(i));
+            li.appendChild(btn);
+            holidayRemarkPairsEl.appendChild(li);
+        });
+        refreshJsonPreview();
+    }
+
+    function deleteHoliday(i) {
+        holidays.splice(i, 1);
+        remarks.splice(i, 1);
+        renderHolidayPairs();
+    }
+
+    function addLeave() {
+        const d = leaveInputEl.value;
+        if (!d) return showToast("Error", "Select leave date");
+
+        leaves.push(d);
+        leaveInputEl.value = "";
+
+        renderLeaveList();
+    }
+
+    function renderLeaveList() {
+        leaveListEl.innerHTML = "";
+        leaves.forEach((d, i) => {
+            const li = document.createElement('li');
+            li.className = "list-group-item d-flex justify-content-between align-items-center";
+            li.innerHTML = `<span>${d}</span>`;
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-sm btn-danger';
+            btn.type = 'button';
+            btn.innerText = 'Delete';
+            btn.addEventListener('click', () => deleteLeave(i));
+            li.appendChild(btn);
+            leaveListEl.appendChild(li);
+        });
+        refreshJsonPreview();
+    }
+
+    function deleteLeave(i) {
+        leaves.splice(i, 1);
+        renderLeaveList();
+    }
+
+    // escape helper for remarks that may contain HTML chars
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/[&<>"']/g, function (m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
+
+    async function sendRequest() {
+        // run native validation before proceeding
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;  // stop if invalid
+        }
+
+        const payload = {
+            employeeId: employeeIdEl.value,
+            year: Number(yearEl.value),
+            month: Number(monthEl.value),
+            managerApproval: managerApprovalEl.value,
+            holidays,
+            leaveDates: leaves,
+            remarks,
+            saturdayWeekoff: Number(weekoffEl.value)
+        };
+
+        try {
+            const response = await fetch("/api/generate-timesheet", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const msg = await response.text();
+                showToast("Error", msg);
+                throw new Error(msg);
+            }
+
+            const blob = await response.blob();
+            let filename = "timesheet.xlsx";
+            const header = response.headers.get("Content-Disposition");
+
+            if (header && header.includes("filename=")) {
+                filename = header.split("filename=")[1].replace(/"/g, "");
+            }
+
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            showToast("Success", "Excel downloaded!");
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // initial preview
+    refreshJsonPreview();
+</script>
+
+</body>
+</html>

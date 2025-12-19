@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Generator</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body { background-color: #f5f7fa; }
+        pre {
+            background: #1e1e1e;
+            color: #b5f5ec;
+            padding: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body class="p-4">
+
+<div class="container">
+    <h2 class="mb-4 text-center">📝 Attendance Generator</h2>
+
+    <div class="row g-4">
+
+        <!-- EMPLOYEE DETAILS -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">Employee Details</div>
+                <div class="card-body">
+                    <input id="employeeId" class="form-control mb-2" placeholder="Employee ID">
+                    <div class="row">
+                        <div class="col">
+                            <input id="year" type="number" value="2025" class="form-control" placeholder="Year">
+                        </div>
+                        <div class="col">
+                            <input id="month" type="number" value="1" class="form-control" placeholder="Month">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SATURDAY WEEKOFF RULE -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">Saturday Weekoff Rule</div>
+                <div class="card-body">
+                    <select id="weekoff" class="form-select">
+                        <option value="1">1st & 3rd Saturday Off</option>
+                        <option value="2">2nd & 4th Saturday Off</option>
+                        <option value="3">All Saturdays Off</option>
+                        <option value="4">Every Saturday Working</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- PUBLIC HOLIDAYS -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning">Public Holidays</div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="date" id="holidayInput" class="form-control">
+                        <button class="btn btn-success" onclick="addHoliday()">Add</button>
+                    </div>
+                    <ul id="holidayList" class="list-group"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- WEEK OFF DATES -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-info">Week Off Dates</div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="date" id="weekOffInput" class="form-control">
+                        <button class="btn btn-success" onclick="addWeekOff()">Add</button>
+                    </div>
+                    <ul id="weekOffList" class="list-group"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMP OFF -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">Comp Off Dates</div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="date" id="compOffInput" class="form-control">
+                        <button class="btn btn-success" onclick="addCompOff()">Add</button>
+                    </div>
+                    <ul id="compOffList" class="list-group"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEAVES -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">Leave Dates</div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="date" id="leaveInput" class="form-control">
+                        <button class="btn btn-success" onclick="addLeave()">Add</button>
+                    </div>
+                    <ul id="leaveList" class="list-group"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- REMARKS -->
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">Remarks</div>
+                <div class="card-body">
+                    <textarea id="remarks" class="form-control" placeholder="Remarks"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON PREVIEW -->
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">JSON Preview</div>
+                <div class="card-body">
+                    <pre id="jsonOutput"></pre>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-success" onclick="sendRequest()">Generate Excel</button>
+
+        <a href="/" class="btn btn-outline-secondary">Back to Home</a>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    let publicHolidays = [];
+    let weekOffDates = [];
+    let compOff = [];
+    let leaveDates = [];
+
+    function refreshJson() {
+        jsonOutput.innerText = JSON.stringify({
+            employeeId: employeeId.value,
+            year: Number(year.value),
+            month: Number(month.value),
+            leaveDates,
+            weekOffDates,
+            compOff,
+            publicHolidays,
+            remarks: remarks.value,
+            saturdayWeekoff: Number(weekoff.value)
+        }, null, 4);
+    }
+
+    function render(list, element, type) {
+        element.innerHTML = "";
+        list.forEach((d, i) => {
+            element.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>${d}</span>
+                    <button class="btn btn-sm btn-danger" onclick="removeItem('${type}', ${i})">Delete</button>
+                </li>`;
+        });
+        refreshJson();
+    }
+
+    function addHoliday() {
+        if (!holidayInput.value) return;
+        publicHolidays.push(holidayInput.value);
+        holidayInput.value = "";
+        render(publicHolidays, holidayList, 'publicHolidays');
+    }
+
+    function addWeekOff() {
+        if (!weekOffInput.value) return;
+        weekOffDates.push(weekOffInput.value);
+        weekOffInput.value = "";
+        render(weekOffDates, weekOffList, 'weekOffDates');
+    }
+
+    function addCompOff() {
+        if (!compOffInput.value) return;
+        compOff.push(compOffInput.value);
+        compOffInput.value = "";
+        render(compOff, compOffList, 'compOff');
+    }
+
+    function addLeave() {
+        if (!leaveInput.value) return;
+        leaveDates.push(leaveInput.value);
+        leaveInput.value = "";
+        render(leaveDates, leaveList, 'leaveDates');
+    }
+
+    function removeItem(type, index) {
+        if (type === 'publicHolidays') publicHolidays.splice(index, 1);
+        if (type === 'weekOffDates') weekOffDates.splice(index, 1);
+        if (type === 'compOff') compOff.splice(index, 1);
+        if (type === 'leaveDates') leaveDates.splice(index, 1);
+
+        render(publicHolidays, holidayList, 'publicHolidays');
+        render(weekOffDates, weekOffList, 'weekOffDates');
+        render(compOff, compOffList, 'compOff');
+        render(leaveDates, leaveList, 'leaveDates');
+    }
+
+    function sendRequest() {
+
+        const payload = {
+            employeeId: employeeId.value,
+            year: Number(year.value),
+            month: Number(month.value),
+            leaveDates,
+            weekOffDates,
+            compOff,
+            publicHolidays,
+            remarks: remarks.value,
+            saturdayWeekoff: Number(weekoff.value)
+        };
+
+        fetch("/api/attendance/generate", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        })
+            .then(async response => {
+                if (!response.ok) {
+                    const msg = await response.text();
+                    alert(msg);
+                    throw new Error(msg);
+                }
+
+                const blob = await response.blob();
+                let filename = "attendance.xlsx";
+
+                const header = response.headers.get("Content-Disposition");
+                if (header && header.includes("filename=")) {
+                    filename = header.split("filename=")[1].replace(/"/g, "");
+                }
+
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            })
+            .catch(err => console.error(err));
+    }
+
+    refreshJson();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Timesheet Generator</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f5f7fa;
+        }
+        pre {
+            background: #1e1e1e;
+            color: #b5f5ec;
+            padding: 15px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body class="p-4">
+
+<div class="container">
+    <h2 class="mb-4 text-center">📝 Timesheet Generator</h2>
+
+    <div class="row g-4">
+
+        <!-- BASIC DETAILS -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">Employee Details</div>
+                <div class="card-body">
+                    <input id="employeeId" class="form-control mb-2" placeholder="Employee ID">
+                    <div class="row">
+                        <div class="col">
+                            <input id="year" type="number" class="form-control" value="2025" placeholder="Year">
+                        </div>
+                        <div class="col">
+                            <input id="month" type="number" class="form-control" value="12" placeholder="Month">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WEEKOFF -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">Saturday Weekoff Rule</div>
+                <div class="card-body">
+                    <select id="weekoff" class="form-select">
+                        <option value="1">1st & 3rd Saturday Off</option>
+                        <option value="2">2nd & 4th Saturday Off</option>
+                        <option value="3">All Saturdays Off</option>
+                        <option value="4">All Saturdays Working</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- HOLIDAY + REMARK -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-warning">Holidays & Remarks</div>
+                <div class="card-body">
+
+                    <div class="input-group mb-3">
+                        <input type="date" id="holidayInput" class="form-control">
+                        <input type="text" id="remarkInput" class="form-control" placeholder="Remark">
+                        <button class="btn btn-success" onclick="addHoliday()">Add</button>
+                    </div>
+
+                    <ul class="list-group" id="holidayRemarkPairs"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEAVES -->
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-info">Leave Dates</div>
+                <div class="card-body">
+
+                    <div class="input-group mb-3">
+                        <input type="date" id="leaveInput" class="form-control">
+                        <button class="btn btn-success" onclick="addLeave()">Add</button>
+                    </div>
+
+                    <ul class="list-group" id="leaveList"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ⭐ MANAGER APPROVAL (JUST A STRING) -->
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">Manager Approval</div>
+                <div class="card-body">
+
+                    <input id="managerApproval" class="form-control mb-2"
+                           placeholder="Manager Name (e.g., Rathin Sarkar)">
+
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON PREVIEW -->
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">JSON Preview</div>
+                <div class="card-body">
+                    <pre id="jsonOutput"></pre>
+                </div>
+            </div>
+        </div>
+
+
+        <button type="button" class="btn btn-success" onclick="sendRequest()">Generate Excel</button>
+
+        <a href="/" class="btn btn-outline-secondary" >Back to Home</a>
+
+
+    </div>
+</div>
+
+
+<!-- Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toastBox" class="toast">
+        <div class="toast-header">
+            <strong class="me-auto" id="toastTitle">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody">Message goes here</div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    let holidays = [];
+    let remarks = [];
+    let leaves = [];
+
+    function showToast(title, message) {
+        document.getElementById("toastTitle").innerText = title;
+        document.getElementById("toastBody").innerText = message;
+        new bootstrap.Toast(document.getElementById("toastBox")).show();
+    }
+
+    function refreshJsonPreview() {
+        const obj = {
+            employeeId: employeeId.value,
+            year: Number(year.value),
+            month: Number(month.value),
+            managerApproval: managerApproval.value,   // ✔ SINGLE STRING
+            holidays: holidays,
+            leaveDates: leaves,
+            remarks: remarks,
+            saturdayWeekoff: Number(weekoff.value)
+        };
+        jsonOutput.innerText = JSON.stringify(obj, null, 4);
+    }
+
+    function addHoliday() {
+        const h = holidayInput.value;
+        const r = remarkInput.value;
+
+        if (!h) return showToast("Error", "Select holiday date");
+        if (!r.trim()) return showToast("Error", "Enter remark");
+
+        holidays.push(h);
+        remarks.push(r);
+
+        holidayInput.value = "";
+        remarkInput.value = "";
+
+        renderHolidayPairs();
+    }
+
+    function renderHolidayPairs() {
+        holidayRemarkPairs.innerHTML = "";
+        holidays.forEach((h, i) => {
+            holidayRemarkPairs.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>${h} — ${remarks[i]}</span>
+                    <button class="btn btn-sm btn-danger" onclick="deleteHoliday(${i})">Delete</button>
+                </li>`;
+        });
+        refreshJsonPreview();
+    }
+
+    function deleteHoliday(i) {
+        holidays.splice(i, 1);
+        remarks.splice(i, 1);
+        renderHolidayPairs();
+    }
+
+    function addLeave() {
+        const d = leaveInput.value;
+        if (!d) return showToast("Error", "Select leave date");
+
+        leaves.push(d);
+        leaveInput.value = "";
+
+        renderLeaveList();
+    }
+
+    function renderLeaveList() {
+        leaveList.innerHTML = "";
+        leaves.forEach((d, i) => {
+            leaveList.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>${d}</span>
+                    <button class="btn btn-sm btn-danger" onclick="deleteLeave(${i})">Delete</button>
+                </li>`;
+        });
+        refreshJsonPreview();
+    }
+
+    function deleteLeave(i) {
+        leaves.splice(i, 1);
+        renderLeaveList();
+    }
+
+    function sendRequest() {
+        const payload = {
+            employeeId: employeeId.value,
+            year: Number(year.value),
+            month: Number(month.value),
+            managerApproval: managerApproval.value,  // ✔ Correct
+            holidays,
+            leaveDates: leaves,
+            remarks,
+            saturdayWeekoff: Number(weekoff.value)
+        };
+
+        fetch("/api/generate-timesheet", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(payload)
+        })
+            .then(async response => {
+                if (!response.ok) {
+                    const msg = await response.text();
+                    showToast("Error", msg);
+                    throw new Error(msg);
+                }
+
+                const blob = await response.blob();
+                let filename = "timesheet.xlsx";
+                const header = response.headers.get("Content-Disposition");
+
+                if (header && header.includes("filename=")) {
+                    filename = header.split("filename=")[1].replace(/"/g, "");
+                }
+
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+
+                showToast("Success", "Excel downloaded!");
+            })
+            .catch(err => console.error(err));
+    }
+
+    refreshJsonPreview();
+</script>
+
+</body>
+</html>

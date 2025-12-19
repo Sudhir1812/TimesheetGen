@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: timesheetgen-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: timesheetgen
+  template:
+    metadata:
+      labels:
+        app: timesheetgen
+    spec:
+      containers:
+        - name: timesheetgen
+          image: timesheetgen:1.0
+          ports:
+            - containerPort: 8082
