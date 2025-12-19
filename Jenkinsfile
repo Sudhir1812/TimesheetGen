@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "timesheetgen:1.0"
+        KUBECONFIG = "C:\\Users\\Jenkins\\.kube\\config"
     }
 
     stages {
@@ -14,7 +15,6 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Use bat for Windows
                 bat 'mvnw.cmd clean package'
             }
         }
@@ -27,7 +27,7 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                bat 'kubectl apply -f k8s\\'
+                bat 'kubectl apply -f k8s\\ --validate=false'
             }
         }
     }
