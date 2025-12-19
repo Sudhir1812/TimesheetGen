@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "timesheetgen:1.0"
-        KUBECONFIG = "C:\\Users\\Jenkins\\.kube\\config"
+        KUBECONFIG = "C:\\ProgramData\\Jenkins\\.kube\\config"
     }
 
     stages {
