@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    triggers {
+        githubPush()
+    }
+
     environment {
         IMAGE_NAME = "timesheetgen:1.0"
         KUBECONFIG = "C:\\ProgramData\\Jenkins\\.kube\\config"
