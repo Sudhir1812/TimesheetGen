@@ -50,9 +50,8 @@ pipeline {
             }
             steps {
                 echo 'Deploying to TEST environment'
-
-                    bat 'kubectl apply -f k8s\\test\\ --validate=false'
-
+                // Use forward slashes or double backslashes
+                bat 'kubectl apply -f k8s/test/ --validate=false'
             }
         }
 
@@ -62,9 +61,8 @@ pipeline {
             }
             steps {
                 echo 'Deploying to PRODUCTION environment'
-
-                    bat 'kubectl apply -f k8s\\prod\\ --validate=false'
-
+                // Use forward slashes or double backslashes
+                bat 'kubectl apply -f k8s/prod/ --validate=false'
             }
         }
     }
@@ -81,4 +79,3 @@ pipeline {
         }
     }
 }
-
