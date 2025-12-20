@@ -2,8 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: timesheetgen-deployment
+  namespace: test
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: timesheetgen
@@ -14,6 +15,7 @@ spec:
     spec:
       containers:
         - name: timesheetgen
-          image: timesheetgen:1.0
+          image: timesheetgen:IMAGE_TAG
+          imagePullPolicy: Never
           ports:
             - containerPort: 8082
