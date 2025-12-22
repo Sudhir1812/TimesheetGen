@@ -14,13 +14,7 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Build & Test') {
+        stage('CI - Build & Test') {
             steps {
                 bat 'mvnw.cmd clean test'
             }
@@ -47,22 +41,26 @@ pipeline {
         stage('Deploy to TEST') {
             when {
                 branch 'develop'
-            }
+        }
             steps {
                 echo 'Deploying to TEST environment'
-                // Use forward slashes or double backslashes
-                bat 'kubectl apply -f k8s/test/ --validate=false'
+        // Create namespace if it doesn't exist
+        bat 'kubectl get namespace test || kubectl create namespace test'
+        // Apply manifests
+        bat 'kubectl apply -f k8s/test/ --validate=false'
             }
         }
 
         stage('Deploy to PROD') {
             when {
                 branch 'main'
-            }
+        }
             steps {
                 echo 'Deploying to PRODUCTION environment'
-                // Use forward slashes or double backslashes
-                bat 'kubectl apply -f k8s/prod/ --validate=false'
+        // Create namespace if it doesn't exist
+        bat 'kubectl get namespace prod || kubectl create namespace prod'
+        // Apply manifests
+        bat 'kubectl apply -f k8s/prod/ --validate=false'
             }
         }
     }
