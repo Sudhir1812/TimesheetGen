@@ -40,12 +40,18 @@ pipeline {
         }
 
         stage('Deploy to TEST') {
-            when { branch 'develop' }
+            when {
+                branch 'develop'
+            }
             steps {
                 echo 'Deploying to TEST environment'
 
-                // Single-line PowerShell replacement
-                bat 'powershell -Command "(Get-Content k8s/test/deployment.yaml) -replace \'IMAGE_TAG\', \'${IMAGE_TAG}\' | Set-Content k8s/test/deployment.yaml"'
+                // Replace IMAGE_TAG in TEST deployment manifest
+                bat """
+                powershell -Command "(Get-Content k8s/test/deployment.yaml) `
+                -replace 'IMAGE_TAG', '${IMAGE_TAG}' |
+                Set-Content k8s/test/deployment.yaml"
+                """
 
                 // Create namespace if not exists
                 bat 'kubectl get namespace test || kubectl create namespace test'
@@ -56,12 +62,18 @@ pipeline {
         }
 
         stage('Deploy to PROD') {
-            when { branch 'main' }
+            when {
+                branch 'main'
+            }
             steps {
                 echo 'Deploying to PRODUCTION environment'
 
-                // Single-line PowerShell replacement
-                bat 'powershell -Command "(Get-Content k8s/prod/deployment.yaml) -replace \'IMAGE_TAG\', \'${IMAGE_TAG}\' | Set-Content k8s/prod/deployment.yaml"'
+                // Replace IMAGE_TAG in PROD deployment manifest
+                bat """
+                powershell -Command "(Get-Content k8s/prod/deployment.yaml) `
+                -replace 'IMAGE_TAG', '${IMAGE_TAG}' |
+                Set-Content k8s/prod/deployment.yaml"
+                """
 
                 // Create namespace if not exists
                 bat 'kubectl get namespace prod || kubectl create namespace prod'
