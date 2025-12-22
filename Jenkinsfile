@@ -44,6 +44,11 @@ pipeline {
         }
             steps {
                 echo 'Deploying to TEST environment'
+
+         // Replace IMAGE_TAG in deployment manifest
+        bat "powershell -Command \"(Get-Content k8s/test/deployment.yaml) -replace 'IMAGE_TAG', '${BUILD_NUMBER}' | Set-Content k8s/test/deployment.yaml\""
+
+
         // Create namespace if it doesn't exist
         bat 'kubectl get namespace test || kubectl create namespace test'
         // Apply manifests
@@ -57,6 +62,10 @@ pipeline {
         }
             steps {
                 echo 'Deploying to PRODUCTION environment'
+
+                 // Replace IMAGE_TAG in deployment manifest
+        bat "powershell -Command \"(Get-Content k8s/prod/deployment.yaml) -replace 'IMAGE_TAG', '${BUILD_NUMBER}' | Set-Content k8s/prod/deployment.yaml\""
+
         // Create namespace if it doesn't exist
         bat 'kubectl get namespace prod || kubectl create namespace prod'
         // Apply manifests
