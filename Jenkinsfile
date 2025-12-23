@@ -2,10 +2,12 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME   = "timesheetgen"
-        IMAGE_TAG  = "${BRANCH_NAME}-${BUILD_NUMBER}"
-        IMAGE_NAME = "${APP_NAME}:${IMAGE_TAG}"
-        KUBECONFIG = "C:\\ProgramData\\Jenkins\\.kube\\config"
+        APP_NAME        = "timesheetgen"
+        IMAGE_TAG       = "${BRANCH_NAME}-${BUILD_NUMBER}"
+        LOCAL_IMAGE     = "${APP_NAME}:${IMAGE_TAG}"
+        DOCKERHUB_REPO  = "sudhirkumar181297/timesheetgen"
+        REMOTE_IMAGE    = "${DOCKERHUB_REPO}:${IMAGE_TAG}"
+        KUBECONFIG      = "C:\\ProgramData\\Jenkins\\.kube\\config"
     }
 
     options {
@@ -34,8 +36,31 @@ pipeline {
                 }
             }
             steps {
-                echo "Building Docker image: ${IMAGE_NAME}"
-                bat "docker build -t %IMAGE_NAME% ."
+                echo "Building Docker image: ${LOCAL_IMAGE}"
+                bat "docker build -t %LOCAL_IMAGE% ."
+            }
+        }
+
+        stage('Docker Push to Docker Hub') {
+            when {
+                anyOf {
+                    branch 'develop'
+                    branch 'main'
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    bat """
+                        echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                        docker tag %LOCAL_IMAGE% %REMOTE_IMAGE%
+                        docker push %REMOTE_IMAGE%
+                        docker logout
+                    """
+                }
             }
         }
 
@@ -46,15 +71,11 @@ pipeline {
             steps {
                 echo 'Deploying to TEST environment'
 
-                // Replace IMAGE_TAG in TEST deployment manifest
                 bat """
                 powershell -Command "(Get-Content k8s/test/deployment.yaml) -replace 'IMAGE_TAG', '${IMAGE_TAG}' | Set-Content k8s/test/deployment.yaml"
                 """
 
-                // Create namespace if not exists
                 bat 'kubectl get namespace test || kubectl create namespace test'
-
-                // Apply manifests
                 bat 'kubectl apply -f k8s/test/ --validate=false'
             }
         }
@@ -66,15 +87,11 @@ pipeline {
             steps {
                 echo 'Deploying to PRODUCTION environment'
 
-                // Replace IMAGE_TAG in PROD deployment manifest
                 bat """
                 powershell -Command "(Get-Content k8s/prod/deployment.yaml) -replace 'IMAGE_TAG', '${IMAGE_TAG}' | Set-Content k8s/prod/deployment.yaml"
                 """
 
-                // Create namespace if not exists
                 bat 'kubectl get namespace prod || kubectl create namespace prod'
-
-                // Apply manifests
                 bat 'kubectl apply -f k8s/prod/ --validate=false'
             }
         }
@@ -83,7 +100,7 @@ pipeline {
     post {
         success {
             echo "Pipeline SUCCESS for branch: ${BRANCH_NAME}"
-            echo "Docker Image Built: ${IMAGE_NAME}"
+            echo "Docker Image Pushed: ${REMOTE_IMAGE}"
         }
         failure {
             echo "Pipeline FAILED for branch: ${BRANCH_NAME}"
@@ -93,6 +110,3 @@ pipeline {
         }
     }
 }
-
-
-
