@@ -48,9 +48,7 @@ pipeline {
 
                 // Replace IMAGE_TAG in TEST deployment manifest
                 bat """
-                powershell -Command "(Get-Content k8s/test/deployment.yaml) `
-                -replace 'IMAGE_TAG', '${IMAGE_TAG}' |
-                Set-Content k8s/test/deployment.yaml"
+                powershell -Command "(Get-Content k8s/test/deployment.yaml) -replace 'IMAGE_TAG', '${IMAGE_TAG}' | Set-Content k8s/test/deployment.yaml"
                 """
 
                 // Create namespace if not exists
@@ -70,9 +68,7 @@ pipeline {
 
                 // Replace IMAGE_TAG in PROD deployment manifest
                 bat """
-                powershell -Command "(Get-Content k8s/prod/deployment.yaml) `
-                -replace 'IMAGE_TAG', '${IMAGE_TAG}' |
-                Set-Content k8s/prod/deployment.yaml"
+                powershell -Command "(Get-Content k8s/prod/deployment.yaml) -replace 'IMAGE_TAG', '${IMAGE_TAG}' | Set-Content k8s/prod/deployment.yaml"
                 """
 
                 // Create namespace if not exists
