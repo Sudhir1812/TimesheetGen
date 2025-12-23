@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: timesheetgen
-          image: timesheetgen:IMAGE_TAG
+          image: sudhirkumar181297/timesheetgen:IMAGE_TAG
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8082
